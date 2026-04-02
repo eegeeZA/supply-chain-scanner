@@ -1,0 +1,45 @@
+{
+  "incidents": [
+    {
+      "id": "axios-2026-03-31",
+      "title": "Axios NPM Supply Chain Compromise",
+      "published": "2026-03-31",
+      "severity": "CRITICAL",
+      "source": "https://www.sans.org/blog/axios-npm-supply-chain-compromise-malicious-packages-remote-access-trojan",
+      "summary": "TeamPCP compromised axios@1.14.1 and axios@0.30.4 via a malicious dependency (plain-crypto-js). Deployed credential harvester + cross-platform RAT. Live on npm for ~2-3 hours.",
+      "package_manager": "npm",
+      "malicious_packages": [
+        { "name": "axios", "version": "1.14.1", "sha1": "2553649f232204966871cea80a5d0d6adc700ca" },
+        { "name": "axios", "version": "0.30.4", "sha1": "d6f3f62fd3b9f5432f5782b62d8cfd5247d5ee71" },
+        { "name": "plain-crypto-js", "version": "4.2.1", "sha1": "07d889e2dadce6f3910dcbc253317d28ca61c766" }
+      ],
+      "injected_dependency": "plain-crypto-js@4.2.1",
+      "safe_versions": ["1.14.0", "0.30.3"],
+      "network_iocs": [
+        { "type": "domain", "value": "sfrclak.com" },
+        { "type": "ip", "value": "142.11.206.73", "port": 8000 },
+        { "type": "url", "value": "packages.npm.org/product0", "platform": "macOS" },
+        { "type": "url", "value": "packages.npm.org/product1", "platform": "Windows" },
+        { "type": "url", "value": "packages.npm.org/product2", "platform": "Linux" }
+      ],
+      "file_iocs": [
+        { "platform": "macOS", "path": "/Library/Caches/com.apple.act.mond" },
+        { "platform": "macOS", "path": "~/Library/Caches/com.apple.act.mond" },
+        { "platform": "Windows", "path": "%PROGRAMDATA%/wt.exe" },
+        { "platform": "Windows", "path": "%TEMP%/6202033.vbs" },
+        { "platform": "Windows", "path": "%TEMP%/6202033.ps1" },
+        { "platform": "Linux", "path": "/tmp/ld.py" }
+      ],
+      "what_to_rotate": [
+        "NPM tokens",
+        "AWS/Azure/GCP cloud keys",
+        "SSH keys",
+        "Database credentials",
+        "API tokens"
+      ],
+      "also_compromised": ["trivy", "kics", "litellm", "telnyx"],
+      "attack_window_start_utc": "2026-03-31T00:21:00",
+      "attack_window_end_utc": "2026-03-31T03:15:00"
+    }
+  ]
+}

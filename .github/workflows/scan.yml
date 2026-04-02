@@ -1,0 +1,54 @@
+# This workflow assumes scan.py and check_findings.py are at the root of the
+# repository you copy this into. The scanner runs in repo-scoped mode by default
+# (host forensic checks are opt-in via --host when ROOT is not /).
+name: Supply Chain Scan
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '0 6 * * *'
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Run supply-chain-scanner
+        run: |
+          set +e
+          python3 scan.py . --json > result.json.tmp
+          EXIT=$?
+          set -e
+          if [ $EXIT -eq 2 ]; then
+            echo "Scanner error (exit $EXIT) — aborting" >&2; exit 2
+          fi
+          python3 -m json.tool result.json.tmp > /dev/null 2>&1 \
+            || { echo "Scanner produced invalid JSON" >&2; exit 2; }
+          mv result.json.tmp result.json
+
+      - name: Convert to SARIF
+        if: hashFiles('result.json') != ''
+        run: python3 check_findings.py result.json --sarif > results.sarif
+
+      - name: Upload SARIF to GitHub Code Scanning
+        if: hashFiles('results.sarif') != ''
+        uses: github/codeql-action/upload-sarif@8c78abb9b62512e3c45dea6559ffd924ed8549c8 # v3
+        with:
+          sarif_file: results.sarif
+
+      - name: Upload scan result as artifact
+        if: hashFiles('result.json') != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: scan-result
+          path: result.json
+          retention-days: 30
+
+      - name: Fail on CRITICAL/HIGH
+        if: hashFiles('result.json') != ''
+        run: python3 check_findings.py result.json

@@ -1,0 +1,48 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Extract release notes
+        run: |
+          python3 - <<'EOF'
+          import pathlib
+          import re
+
+          changelog = pathlib.Path("CHANGELOG.md").read_text()
+
+          # Match the first versioned section heading, e.g. ## [1.0.0] - 2026-04-02
+          pattern = re.compile(r"^## \[\d+\.\d+\.\d+\]", re.MULTILINE)
+          matches = list(pattern.finditer(changelog))
+
+          if not matches:
+              print("No versioned section found in CHANGELOG.md")
+              exit(1)
+
+          start = matches[0].start()
+          end = matches[1].start() if len(matches) > 1 else len(changelog)
+          notes = changelog[start:end].strip()
+
+          pathlib.Path("release-notes.md").write_text(notes)
+          print(f"Extracted release notes ({len(notes)} chars)")
+          EOF
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --notes-file release-notes.md
