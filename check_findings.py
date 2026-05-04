@@ -7,7 +7,7 @@ Usage:
     check_findings.py result.json --sarif   # emit SARIF 2.1.0 to stdout; exit 1 if CRITICAL/HIGH
 """
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 import argparse
 import hashlib
@@ -99,7 +99,7 @@ def main() -> int:
     parser.add_argument("result_json", help="JSON output file from scan.py --json")
     parser.add_argument(
         "--sarif", action="store_true",
-        help="Emit SARIF 2.1.0 to stdout and exit 0",
+        help="Emit SARIF 2.1.0 to stdout (exits 1 if CRITICAL/HIGH findings present, 0 if clean)",
     )
     args = parser.parse_args()
 

@@ -8,6 +8,28 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-05-03
+
+### Added
+
+- IOC database: Mini Shai-Hulud campaign (TeamPCP, 2026-04-29) — five
+  SAP-related npm packages (`@cap-js/sqlite@2.2.2`, `@cap-js/postgres@2.2.2`,
+  `@cap-js/db-service@2.10.1`, `mbt@1.2.48`, `intercom-client@7.0.5`) and two
+  PyPI packages (`lightning@2.6.2`, `lightning@2.6.3`)
+- `check_repo_poisoning`: new checker for workspace dropper files written by the
+  Mini Shai-Hulud campaign (`.claude/setup.mjs`, `.claude/execution.js`,
+  `.vscode/setup.mjs`, `.claude/settings.json` SessionStart hook,
+  `.vscode/tasks.json` folderOpen task); IOC-string matches emit HIGH; a SHA256
+  match emits CRITICAL immediately (no corroboration required); two or more
+  content/JSON matches from the same incident are corroborated into a single
+  CRITICAL summary
+- `repo_artifacts` schema field: declarative per-incident list of
+  workspace-relative paths with `hash_or_content`, `json_hook`, and `json_task`
+  match modes
+- `network_iocs[].type: "string"` support: high-fidelity campaign strings flow
+  through shell-profile and persistence scanning automatically
+- `--repo / --no-repo` CLI flag: opt out of repo-poisoning checks (default: on)
+
 ## [1.0.0] - 2026-04-02
 
 ### Added

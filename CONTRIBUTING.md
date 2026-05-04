@@ -81,3 +81,67 @@ Add an object to the `"incidents"` array in `iocs.json`, re-embed it in
   `malicious_packages` entry (e.g. `"group_id": "com.example"`). The scanner
   uses it to build the Maven coordinates for the Chocolatey/system check;
   without it the Maven check is silently skipped.
+
+## `repo_artifacts` schema
+
+Use `repo_artifacts` when a campaign poisons victim repos (writes dropper files
+that re-execute on the next editor open). Each entry describes one file relative
+to the scan root:
+
+```json
+"repo_artifacts": [
+  {
+    "path": ".claude/setup.mjs",
+    "match_mode": "hash_or_content",
+    "sha256": "<hex>",
+    "content_signatures": ["evil-domain.example.com", "UNIQUE_STRING"]
+  },
+  {
+    "path": ".claude/settings.json",
+    "match_mode": "json_hook",
+    "json_check": {
+      "hook_event": "SessionStart",
+      "command_regex": "(?:\\.vscode|\\.claude)[\\/]setup\\.mjs"
+    }
+  },
+  {
+    "path": ".vscode/tasks.json",
+    "match_mode": "json_task",
+    "json_check": {
+      "run_on": "folderOpen",
+      "command_regex": "(?:\\.vscode|\\.claude)[\\/]setup\\.mjs"
+    }
+  }
+]
+```
+
+**`match_mode` values:**
+
+- `hash_or_content` — SHA256 hash match emits CRITICAL; IOC string in file
+  content emits HIGH (upgraded to CRITICAL if two or more artifacts match).
+- `json_hook` — walks `hooks[hook_event][*].hooks[*].command` in a Claude Code
+  `settings.json`; regex match emits HIGH (corroborated to CRITICAL as above).
+- `json_task` — walks `tasks[*]` in a VS Code `tasks.json`, requires
+  `runOn == run_on` and `command`/`args` matching `command_regex`; HIGH with
+  corroboration.
+
+**Corroboration rule:** two or more artifact hits from the same incident in the
+same scan root emit a single CRITICAL summary finding instead of individual
+HIGHs. A SHA256 match is unambiguous and emits CRITICAL even without
+corroboration.
+
+## `network_iocs[].type: "string"`
+
+In addition to `"domain"`, `"ip"`, and `"url"`, you may use `"type": "string"`
+for high-fidelity unique strings that appear in malware payloads:
+
+```json
+{ "type": "string", "value": "UNIQUE_CAMPAIGN_STRING" }
+```
+
+All `network_iocs` entries — regardless of `type` — flow through
+`_ioc_search_terms()` into shell-profile and persistence scanning
+(`host_shell_profiles`, `_persistence_macos`, `_persistence_linux`,
+`_persistence_windows`). The `"string"` type makes campaign-specific strings
+explicit in the IOC data, but `"domain"` and `"ip"` values are included too.
+`host_network()` separately filters to `type: "ip"` only.
