@@ -23,9 +23,10 @@ Usage:
     python3 scan.py --docker                            # scan all local Docker images
     python3 scan.py --docker nginx:latest node:18-slim  # scan specific images
     python3 scan.py ~/dev --online                      # also query OSV.dev live advisories
+    python3 scan.py ~/dev --no-repo                     # skip repo-poisoning dropper checks
 """
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 import argparse
 import hashlib
@@ -74,7 +75,7 @@ def styled(text: str, code: str) -> str:
 # Update URL and SHA256 here when a new iocs.json release is published.
 
 _IOCS_UPDATE_URL = "https://raw.githubusercontent.com/eegeeZA/supply-chain-scanner/main/iocs.json"
-_IOCS_UPDATE_SHA256 = "65d969ba91187499e242af40708f4e4d89d3a0913cfabde5090ed1aa69cdf9cc"
+_IOCS_UPDATE_SHA256 = "84906c0e7bdc78f61c992390b4d9baad1af1cef760ccd31c23ab59dc0a675fe0"
 
 _EMBEDDED_IOCS: dict = {
     "incidents": [
@@ -122,6 +123,114 @@ _EMBEDDED_IOCS: dict = {
             "also_compromised": ["trivy", "kics", "litellm", "telnyx"],
             "attack_window_start_utc": "2026-03-31T00:21:00",
             "attack_window_end_utc":   "2026-03-31T03:15:00",
+        },
+        {
+            "id": "pkg-2026-04-29-mini-shai-hulud-npm",
+            "title": "Mini Shai-Hulud: SAP npm Supply Chain Compromise",
+            "published": "2026-04-29",
+            "severity": "CRITICAL",
+            "source": "https://www.wiz.io/blog/mini-shai-hulud-supply-chain-sap-npm",
+            "summary": (
+                "TeamPCP trojanised SAP-related npm packages with a preinstall hook that "
+                "downloads Bun and executes a credential stealer (execution.js), exfiltrating "
+                "GitHub/npm/cloud/Kubernetes/CI/CD/browser secrets. When a GitHub token is "
+                "found, it also poisons the victim repo with dropper files that re-detonate "
+                "on the next Claude Code or VS Code open."
+            ),
+            "package_manager": "npm",
+            "malicious_packages": [
+                {"name": "@cap-js/sqlite",     "version": "2.2.2",  "sha256": "a1da198bb4e883d077a0e13351bf2c3acdea10497152292e873d79d4f7420211"},
+                {"name": "@cap-js/postgres",   "version": "2.2.2",  "sha256": "1d9e4ece8e13c8eaf94cb858470d1bd8f81bb58f62583552303774fa1579edee"},
+                {"name": "@cap-js/db-service", "version": "2.10.1", "sha256": "258257560fe2f1c2cc3924eae40718c829085b52ae3436b4e46d2565f6996271"},
+                {"name": "mbt",                "version": "1.2.48", "sha256": "86282ebcd3bebf50f087f2c6b00c62caa667cdcb53558033d85acd39e3d88b41"},
+                {"name": "intercom-client",    "version": "7.0.5"},
+            ],
+            "network_iocs": [
+                {"type": "domain",  "value": "zero.masscan.cloud"},
+                {"type": "ip",      "value": "94.154.172.43"},
+                {"type": "string",  "value": "OhNoWhatsGoingOnWithGitHub"},
+                {"type": "string",  "value": "Checkmarx Configuration Storage"},
+                {"type": "string",  "value": "beautifulcastle"},
+            ],
+            "repo_artifacts": [
+                {
+                    "path": ".claude/setup.mjs",
+                    "match_mode": "hash_or_content",
+                    "sha256": "4066781fa830224c8bbcc3aa005a396657f9c8f9016f9a64ad44a9d7f5f45e34",
+                    "content_signatures": ["zero.masscan.cloud", "OhNoWhatsGoingOnWithGitHub"],
+                },
+                {
+                    "path": ".claude/execution.js",
+                    "match_mode": "hash_or_content",
+                    "content_signatures": ["zero.masscan.cloud", "beautifulcastle"],
+                },
+                {
+                    "path": ".vscode/setup.mjs",
+                    "match_mode": "hash_or_content",
+                    "sha256": "4066781fa830224c8bbcc3aa005a396657f9c8f9016f9a64ad44a9d7f5f45e34",
+                    "content_signatures": ["zero.masscan.cloud", "OhNoWhatsGoingOnWithGitHub"],
+                },
+                {
+                    "path": ".claude/settings.json",
+                    "match_mode": "json_hook",
+                    "json_check": {
+                        "hook_event": "SessionStart",
+                        "command_regex": r"(?:\.vscode|\.claude)[/\\]setup\.mjs",
+                    },
+                },
+                {
+                    "path": ".vscode/tasks.json",
+                    "match_mode": "json_task",
+                    "json_check": {
+                        "run_on": "folderOpen",
+                        "command_regex": r"(?:\.vscode|\.claude)[/\\]setup\.mjs",
+                    },
+                },
+            ],
+            "attack_window_start_utc": "2026-04-29T00:00:00",
+            "attack_window_end_utc":   "2026-04-29T23:59:59",
+            "what_to_rotate": [
+                "GitHub Personal Access Tokens and OAuth tokens",
+                "npm tokens",
+                "AWS/Azure/GCP cloud credentials",
+                "Kubernetes service account tokens",
+                "GitHub Actions secrets",
+                "Browser-stored passwords",
+            ],
+        },
+        {
+            "id": "pkg-2026-04-29-mini-shai-hulud-pypi",
+            "title": "Mini Shai-Hulud: lightning PyPI Supply Chain Compromise",
+            "published": "2026-04-29",
+            "severity": "CRITICAL",
+            "source": "https://www.wiz.io/blog/mini-shai-hulud-supply-chain-sap-npm",
+            "summary": (
+                "Same TeamPCP campaign as pkg-2026-04-29-mini-shai-hulud-npm; trojanised PyPI "
+                "lightning package versions exfiltrate credentials to the same C2 infrastructure "
+                "(zero.masscan.cloud)."
+            ),
+            "package_manager": "pip",
+            "malicious_packages": [
+                {"name": "lightning", "version": "2.6.2"},
+                {"name": "lightning", "version": "2.6.3"},
+            ],
+            "network_iocs": [
+                {"type": "domain",  "value": "zero.masscan.cloud"},
+                {"type": "ip",      "value": "94.154.172.43"},
+                {"type": "string",  "value": "OhNoWhatsGoingOnWithGitHub"},
+                {"type": "string",  "value": "Checkmarx Configuration Storage"},
+                {"type": "string",  "value": "beautifulcastle"},
+            ],
+            "attack_window_start_utc": "2026-04-29T00:00:00",
+            "attack_window_end_utc":   "2026-04-29T23:59:59",
+            "what_to_rotate": [
+                "GitHub Personal Access Tokens and OAuth tokens",
+                "npm tokens",
+                "AWS/Azure/GCP cloud credentials",
+                "Kubernetes service account tokens",
+                "GitHub Actions secrets",
+                "Browser-stored passwords",
+            ],
         },
     ]
 }
@@ -214,6 +323,7 @@ _SUSPICIOUS_SCRIPT = re.compile(
 Category = Literal[
     "package", "lockfile", "node_modules", "installed_package",
     "file_artifact", "network", "shell_profile", "launch_agent", "config", "docker",
+    "repo_poisoning",
 ]
 Severity = Literal["CRITICAL", "HIGH", "WARNING"]
 
@@ -733,6 +843,213 @@ def check_composer_installed(path: str, incidents: list[dict]) -> list[Finding]:
                         detail=f'{name}@{bad_ver} is INSTALLED via Composer — malicious code may execute on composer install',
                         remediation='Run: composer remove ' + name + '. Rotate all credentials.',
                     ))
+    return findings
+
+
+_REPO_ARTIFACT_READ_CAP = 16 * 1024 * 1024  # 16 MB cap for content-signature scans
+
+
+def check_repo_poisoning(scan_root: Path, incidents: list[dict]) -> list[Finding]:
+    """Check for repo-poisoning artifacts written by the Mini Shai-Hulud campaign.
+
+    When the malware finds a GitHub token it commits dropper files into the victim
+    repo so the next Claude Code or VS Code user re-detonates the payload. This
+    checker walks the closed set of paths declared in each incident's repo_artifacts
+    list and dispatches on three match modes:
+
+      hash_or_content — SHA256 hash match (CRITICAL) or IOC string in file content
+      json_hook       — malicious SessionStart hook in .claude/settings.json
+      json_task       — malicious folderOpen task in .vscode/tasks.json
+
+    A SHA256 match is unambiguous and emits CRITICAL regardless of corroboration.
+    Content/JSON matches emit HIGH individually; two or more matches from the same
+    incident are corroborated into a single CRITICAL summary finding.
+    """
+    findings: list[Finding] = []
+
+    for incident in incidents:
+        artifacts = incident.get("repo_artifacts", [])
+        if not artifacts:
+            continue
+
+        hit_findings: list[Finding] = []
+
+        for artifact in artifacts:
+            rel_path = artifact["path"]
+            full_path = scan_root / rel_path
+            if not full_path.is_relative_to(scan_root):
+                continue
+            if not full_path.exists():
+                continue
+
+            match_mode = artifact.get("match_mode", "hash_or_content")
+
+            if match_mode == "hash_or_content":
+                try:
+                    sha256_match = False
+                    if artifact.get("sha256"):
+                        if full_path.stat().st_size <= _REPO_ARTIFACT_READ_CAP:
+                            raw = full_path.read_bytes()
+                            if hashlib.sha256(raw).hexdigest() == artifact["sha256"]:
+                                sha256_match = True
+
+                    content_match = False
+                    if not sha256_match and artifact.get("content_signatures"):
+                        with full_path.open("rb") as fh:
+                            text = fh.read(_REPO_ARTIFACT_READ_CAP).decode(errors="replace")
+                        for sig in artifact["content_signatures"]:
+                            if sig and sig in text:
+                                content_match = True
+                                break
+                except OSError:
+                    continue
+
+                if sha256_match or content_match:
+                    sev: Severity = "CRITICAL" if sha256_match else "HIGH"
+                    hit_findings.append(Finding(
+                        incident_id=incident["id"],
+                        category="repo_poisoning",
+                        severity=sev,
+                        path=str(full_path),
+                        detail=(
+                            f'Repo-poisoning dropper {rel_path} — '
+                            + ("SHA256 match" if sha256_match else "IOC string match")
+                        ),
+                        remediation=(
+                            "Do not open this project in Claude Code or VS Code. "
+                            "Remove the dropper file. Rotate GitHub tokens and npm tokens immediately."
+                        ),
+                    ))
+
+            elif match_mode == "json_hook":
+                check = artifact.get("json_check", {})
+                hook_event = check.get("hook_event", "")
+                command_regex = check.get("command_regex", "")
+                if not hook_event or not command_regex:
+                    continue
+                try:
+                    compiled_regex = re.compile(command_regex)
+                    data = json.loads(full_path.read_text(errors="replace"))
+                except (OSError, json.JSONDecodeError, re.error):
+                    continue
+
+                # Claude Code settings.json hook format:
+                # { "hooks": { "EventName": [{ "hooks": [{ "command": "..." }] }] } }
+                hooks_root = data.get("hooks")
+                if not isinstance(hooks_root, dict):
+                    continue
+                event_list = hooks_root.get(hook_event, [])
+                if not isinstance(event_list, list):
+                    continue
+
+                matched = False
+                for hook_group in event_list:
+                    if not isinstance(hook_group, dict):
+                        continue
+                    for hook in hook_group.get("hooks") or []:
+                        if not isinstance(hook, dict):
+                            continue
+                        cmd = hook.get("command") or ""
+                        if isinstance(cmd, str) and compiled_regex.search(cmd):
+                            matched = True
+                            break
+                    if matched:
+                        break
+
+                if matched:
+                    hit_findings.append(Finding(
+                        incident_id=incident["id"],
+                        category="repo_poisoning",
+                        severity="HIGH",
+                        path=str(full_path),
+                        detail=(
+                            f'Malicious {hook_event} hook in {rel_path} — '
+                            "executes dropper when project is opened in Claude Code"
+                        ),
+                        remediation=(
+                            "Remove .claude/settings.json. "
+                            "Rotate GitHub tokens and npm tokens immediately."
+                        ),
+                    ))
+
+            elif match_mode == "json_task":
+                check = artifact.get("json_check", {})
+                run_on = check.get("run_on", "")
+                command_regex = check.get("command_regex", "")
+                if not run_on or not command_regex:
+                    continue
+                try:
+                    compiled_regex = re.compile(command_regex)
+                    data = json.loads(full_path.read_text(errors="replace"))
+                except (OSError, json.JSONDecodeError, re.error):
+                    continue
+
+                tasks = data.get("tasks")
+                if not isinstance(tasks, list):
+                    continue
+
+                matched = False
+                for task in tasks:
+                    if not isinstance(task, dict) or task.get("runOn") != run_on:
+                        continue
+                    cmd_part = task.get("command") or ""
+                    if not isinstance(cmd_part, str):
+                        cmd_part = ""
+                    args = task.get("args") or []
+                    args_str = " ".join(
+                        a for a in (args if isinstance(args, list) else [])
+                        if isinstance(a, str)
+                    )
+                    cmd = (cmd_part + " " + args_str).strip()
+                    if compiled_regex.search(cmd):
+                        matched = True
+                        break
+
+                if matched:
+                    hit_findings.append(Finding(
+                        incident_id=incident["id"],
+                        category="repo_poisoning",
+                        severity="HIGH",
+                        path=str(full_path),
+                        detail=(
+                            f'Malicious {run_on} task in {rel_path} — '
+                            "executes dropper when project is opened in VS Code"
+                        ),
+                        remediation=(
+                            "Remove .vscode/tasks.json. "
+                            "Rotate GitHub tokens and npm tokens immediately."
+                        ),
+                    ))
+
+        # Corroboration gate: 1 match → emit as-is; 2+ matches → single CRITICAL summary.
+        # SHA256 matches are already CRITICAL; they also trigger the upgrade when combined
+        # with any other match.
+        if not hit_findings:
+            continue
+        if len(hit_findings) == 1:
+            findings.extend(hit_findings)
+        else:
+            matched_paths = ", ".join(
+                str(Path(f.path).relative_to(scan_root))
+                if Path(f.path).is_relative_to(scan_root) else f.path
+                for f in hit_findings
+            )
+            findings.append(Finding(
+                incident_id=incident["id"],
+                category="repo_poisoning",
+                severity="CRITICAL",
+                path=str(scan_root),
+                detail=(
+                    f"Repo poisoning confirmed — {len(hit_findings)} dropper artifacts present: "
+                    + matched_paths
+                ),
+                remediation=(
+                    "URGENT: do not open this project in Claude Code or VS Code. "
+                    "Remove .claude/ and .vscode/ dropper files. "
+                    "Rotate ALL GitHub tokens, npm tokens, and cloud credentials immediately."
+                ),
+            ))
+
     return findings
 
 
@@ -2186,6 +2503,7 @@ class Scanner:
         since_ts: float | None = None,
         online: bool = False,
         host: bool = True,
+        repo: bool = True,
     ) -> ScanResult:
         result = ScanResult(root=str(self.root))
         incidents = self.incidents
@@ -2262,6 +2580,9 @@ class Scanner:
             print("\r" + " " * 70 + "\r", end="", flush=True)
 
         result.findings.extend(findings)
+
+        if repo:
+            result.findings.extend(check_repo_poisoning(self.root, incidents))
 
         if host:
             # Serial host-level checks (all platforms)
@@ -2919,6 +3240,13 @@ Examples:
             "repo scans, or --no-host to suppress for full-system scans."
         ),
     )
+    parser.add_argument(
+        "--repo", action=argparse.BooleanOptionalAction, default=True,
+        help=(
+            "Check for repo-poisoning artifacts (.claude/, .vscode/ dropper files written by "
+            "the Mini Shai-Hulud campaign). Default: on. Use --no-repo to suppress."
+        ),
+    )
     # Output format flags (mutually exclusive)
     fmt = parser.add_mutually_exclusive_group()
     fmt.add_argument("--json",  action="store_true", help="Machine-readable JSON output")
@@ -2995,6 +3323,8 @@ Examples:
     else:
         run_host = (root == Path("/") or args.root is None)
 
+    run_repo = args.repo
+
     if docker_only:
         result = ScanResult(root="docker")
     else:
@@ -3004,6 +3334,7 @@ Examples:
             since_ts=since_ts,
             online=args.online,
             host=run_host,
+            repo=run_repo,
         )
 
     # Docker image scan (runs in addition to filesystem scan when ROOT is given)

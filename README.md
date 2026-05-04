@@ -58,6 +58,15 @@ install. The IOC database is embedded — one file to audit, one SHA256 to verif
 
 ---
 
+## Detected campaigns
+
+| Campaign                                                                                                                    | Published  | Packages                                                                                                                                                   | What it steals                                                                                                        |
+|-----------------------------------------------------------------------------------------------------------------------------|------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------|
+| [Axios npm compromise](https://www.sans.org/blog/axios-npm-supply-chain-compromise-malicious-packages-remote-access-trojan) | 2026-03-31 | `axios@1.14.1`, `axios@0.30.4` (npm)                                                                                                                       | Credentials + cross-platform RAT via `plain-crypto-js`                                                                |
+| [Mini Shai-Hulud](https://www.wiz.io/blog/mini-shai-hulud-supply-chain-sap-npm)                                             | 2026-04-29 | `@cap-js/sqlite@2.2.2`, `@cap-js/postgres@2.2.2`, `@cap-js/db-service@2.10.1`, `mbt@1.2.48`, `intercom-client@7.0.5` (npm); `lightning@2.6.2/2.6.3` (PyPI) | GitHub/npm/cloud/K8s/CI/CD/browser secrets; poisons victim repos to re-execute via `.claude/` and `.vscode/` droppers |
+
+---
+
 ## The Axios exploit — how this scanner checks for it
 
 On 31 March 2026, between 00:21 and 03:15 UTC, a threat actor published two
@@ -131,6 +140,7 @@ No installation required. Python 3.11 or later, standard library only.
 | `--top-layers N`       | 5                 | Number of most-recent Docker image layers to scan. Use `0` to scan all layers                                                                                                   |
 | `--online`             | —                 | Query OSV.dev live for malware advisories on all discovered npm packages                                                                                                        |
 | `--host` / `--no-host` | auto              | Enable or disable host-level forensic checks (file artifacts, shell profiles, persistence, npm cache, npm logs). Auto-enabled when `ROOT` is `/` or omitted; disabled otherwise |
+| `--repo` / `--no-repo` | on                | Enable or disable repo-poisoning checks (`.claude/`, `.vscode/` dropper files written by the Mini Shai-Hulud campaign)                                                          |
 
 ### Output formats
 

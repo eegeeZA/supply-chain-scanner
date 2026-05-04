@@ -40,6 +40,104 @@
       "also_compromised": ["trivy", "kics", "litellm", "telnyx"],
       "attack_window_start_utc": "2026-03-31T00:21:00",
       "attack_window_end_utc": "2026-03-31T03:15:00"
+    },
+    {
+      "id": "pkg-2026-04-29-mini-shai-hulud-npm",
+      "title": "Mini Shai-Hulud: SAP npm Supply Chain Compromise",
+      "published": "2026-04-29",
+      "severity": "CRITICAL",
+      "source": "https://www.wiz.io/blog/mini-shai-hulud-supply-chain-sap-npm",
+      "summary": "TeamPCP trojanised SAP-related npm packages with a preinstall hook that downloads Bun and executes a credential stealer (execution.js), exfiltrating GitHub/npm/cloud/Kubernetes/CI/CD/browser secrets. When a GitHub token is found, it also poisons the victim repo with dropper files that re-detonate on the next Claude Code or VS Code open.",
+      "package_manager": "npm",
+      "malicious_packages": [
+        { "name": "@cap-js/sqlite",     "version": "2.2.2",  "sha256": "a1da198bb4e883d077a0e13351bf2c3acdea10497152292e873d79d4f7420211" },
+        { "name": "@cap-js/postgres",   "version": "2.2.2",  "sha256": "1d9e4ece8e13c8eaf94cb858470d1bd8f81bb58f62583552303774fa1579edee" },
+        { "name": "@cap-js/db-service", "version": "2.10.1", "sha256": "258257560fe2f1c2cc3924eae40718c829085b52ae3436b4e46d2565f6996271" },
+        { "name": "mbt",                "version": "1.2.48", "sha256": "86282ebcd3bebf50f087f2c6b00c62caa667cdcb53558033d85acd39e3d88b41" },
+        { "name": "intercom-client",    "version": "7.0.5"  }
+      ],
+      "network_iocs": [
+        { "type": "domain",  "value": "zero.masscan.cloud" },
+        { "type": "ip",      "value": "94.154.172.43" },
+        { "type": "string",  "value": "OhNoWhatsGoingOnWithGitHub" },
+        { "type": "string",  "value": "Checkmarx Configuration Storage" },
+        { "type": "string",  "value": "beautifulcastle" }
+      ],
+      "repo_artifacts": [
+        {
+          "path": ".claude/setup.mjs",
+          "match_mode": "hash_or_content",
+          "sha256": "4066781fa830224c8bbcc3aa005a396657f9c8f9016f9a64ad44a9d7f5f45e34",
+          "content_signatures": ["zero.masscan.cloud", "OhNoWhatsGoingOnWithGitHub"]
+        },
+        {
+          "path": ".claude/execution.js",
+          "match_mode": "hash_or_content",
+          "content_signatures": ["zero.masscan.cloud", "beautifulcastle"]
+        },
+        {
+          "path": ".vscode/setup.mjs",
+          "match_mode": "hash_or_content",
+          "sha256": "4066781fa830224c8bbcc3aa005a396657f9c8f9016f9a64ad44a9d7f5f45e34",
+          "content_signatures": ["zero.masscan.cloud", "OhNoWhatsGoingOnWithGitHub"]
+        },
+        {
+          "path": ".claude/settings.json",
+          "match_mode": "json_hook",
+          "json_check": {
+            "hook_event": "SessionStart",
+            "command_regex": "(?:\\.vscode|\\.claude)[/\\\\]setup\\.mjs"
+          }
+        },
+        {
+          "path": ".vscode/tasks.json",
+          "match_mode": "json_task",
+          "json_check": {
+            "run_on": "folderOpen",
+            "command_regex": "(?:\\.vscode|\\.claude)[/\\\\]setup\\.mjs"
+          }
+        }
+      ],
+      "attack_window_start_utc": "2026-04-29T00:00:00",
+      "attack_window_end_utc": "2026-04-29T23:59:59",
+      "what_to_rotate": [
+        "GitHub Personal Access Tokens and OAuth tokens",
+        "npm tokens",
+        "AWS/Azure/GCP cloud credentials",
+        "Kubernetes service account tokens",
+        "GitHub Actions secrets",
+        "Browser-stored passwords"
+      ]
+    },
+    {
+      "id": "pkg-2026-04-29-mini-shai-hulud-pypi",
+      "title": "Mini Shai-Hulud: lightning PyPI Supply Chain Compromise",
+      "published": "2026-04-29",
+      "severity": "CRITICAL",
+      "source": "https://www.wiz.io/blog/mini-shai-hulud-supply-chain-sap-npm",
+      "summary": "Same TeamPCP campaign as pkg-2026-04-29-mini-shai-hulud-npm; trojanised PyPI lightning package versions exfiltrate credentials to the same C2 infrastructure (zero.masscan.cloud).",
+      "package_manager": "pip",
+      "malicious_packages": [
+        { "name": "lightning", "version": "2.6.2" },
+        { "name": "lightning", "version": "2.6.3" }
+      ],
+      "network_iocs": [
+        { "type": "domain",  "value": "zero.masscan.cloud" },
+        { "type": "ip",      "value": "94.154.172.43" },
+        { "type": "string",  "value": "OhNoWhatsGoingOnWithGitHub" },
+        { "type": "string",  "value": "Checkmarx Configuration Storage" },
+        { "type": "string",  "value": "beautifulcastle" }
+      ],
+      "attack_window_start_utc": "2026-04-29T00:00:00",
+      "attack_window_end_utc": "2026-04-29T23:59:59",
+      "what_to_rotate": [
+        "GitHub Personal Access Tokens and OAuth tokens",
+        "npm tokens",
+        "AWS/Azure/GCP cloud credentials",
+        "Kubernetes service account tokens",
+        "GitHub Actions secrets",
+        "Browser-stored passwords"
+      ]
     }
   ]
 }
