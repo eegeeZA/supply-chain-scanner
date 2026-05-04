@@ -849,6 +849,14 @@ def check_composer_installed(path: str, incidents: list[dict]) -> list[Finding]:
 _REPO_ARTIFACT_READ_CAP = 16 * 1024 * 1024  # 16 MB cap for content-signature scans
 
 
+def _compile_and_load(path: Path, command_regex: str) -> "tuple[re.Pattern, Any] | None":
+    """Compile command_regex and parse JSON at path; return None on any failure."""
+    try:
+        return re.compile(command_regex), json.loads(path.read_text(errors="replace"))
+    except (OSError, json.JSONDecodeError, re.error):
+        return None
+
+
 def check_repo_poisoning(scan_root: Path, incidents: list[dict]) -> list[Finding]:
     """Check for repo-poisoning artifacts written by the Mini Shai-Hulud campaign.
 
@@ -866,6 +874,7 @@ def check_repo_poisoning(scan_root: Path, incidents: list[dict]) -> list[Finding
     incident are corroborated into a single CRITICAL summary finding.
     """
     findings: list[Finding] = []
+    resolved_root = scan_root.resolve()
 
     for incident in incidents:
         artifacts = incident.get("repo_artifacts", [])
@@ -876,8 +885,8 @@ def check_repo_poisoning(scan_root: Path, incidents: list[dict]) -> list[Finding
 
         for artifact in artifacts:
             rel_path = artifact["path"]
-            full_path = scan_root / rel_path
-            if not full_path.is_relative_to(scan_root):
+            full_path = (scan_root / rel_path).resolve()
+            if not full_path.is_relative_to(resolved_root):
                 continue
             if not full_path.exists():
                 continue
@@ -888,8 +897,9 @@ def check_repo_poisoning(scan_root: Path, incidents: list[dict]) -> list[Finding
                 try:
                     sha256_match = False
                     if artifact.get("sha256"):
-                        if full_path.stat().st_size <= _REPO_ARTIFACT_READ_CAP:
-                            raw = full_path.read_bytes()
+                        with full_path.open("rb") as fh:
+                            raw = fh.read(_REPO_ARTIFACT_READ_CAP + 1)
+                        if len(raw) <= _REPO_ARTIFACT_READ_CAP:
                             if hashlib.sha256(raw).hexdigest() == artifact["sha256"]:
                                 sha256_match = True
 
@@ -905,11 +915,10 @@ def check_repo_poisoning(scan_root: Path, incidents: list[dict]) -> list[Finding
                     continue
 
                 if sha256_match or content_match:
-                    sev: Severity = "CRITICAL" if sha256_match else "HIGH"
                     hit_findings.append(Finding(
                         incident_id=incident["id"],
                         category="repo_poisoning",
-                        severity=sev,
+                        severity="CRITICAL" if sha256_match else "HIGH",
                         path=str(full_path),
                         detail=(
                             f'Repo-poisoning dropper {rel_path} — '
@@ -927,14 +936,11 @@ def check_repo_poisoning(scan_root: Path, incidents: list[dict]) -> list[Finding
                 command_regex = check.get("command_regex", "")
                 if not hook_event or not command_regex:
                     continue
-                try:
-                    compiled_regex = re.compile(command_regex)
-                    data = json.loads(full_path.read_text(errors="replace"))
-                except (OSError, json.JSONDecodeError, re.error):
+                result = _compile_and_load(full_path, command_regex)
+                if result is None:
                     continue
+                compiled_regex, data = result
 
-                # Claude Code settings.json hook format:
-                # { "hooks": { "EventName": [{ "hooks": [{ "command": "..." }] }] } }
                 hooks_root = data.get("hooks")
                 if not isinstance(hooks_root, dict):
                     continue
@@ -978,11 +984,10 @@ def check_repo_poisoning(scan_root: Path, incidents: list[dict]) -> list[Finding
                 command_regex = check.get("command_regex", "")
                 if not run_on or not command_regex:
                     continue
-                try:
-                    compiled_regex = re.compile(command_regex)
-                    data = json.loads(full_path.read_text(errors="replace"))
-                except (OSError, json.JSONDecodeError, re.error):
+                result = _compile_and_load(full_path, command_regex)
+                if result is None:
                     continue
+                compiled_regex, data = result
 
                 tasks = data.get("tasks")
                 if not isinstance(tasks, list):
@@ -1021,17 +1026,13 @@ def check_repo_poisoning(scan_root: Path, incidents: list[dict]) -> list[Finding
                         ),
                     ))
 
-        # Corroboration gate: 1 match → emit as-is; 2+ matches → single CRITICAL summary.
-        # SHA256 matches are already CRITICAL; they also trigger the upgrade when combined
-        # with any other match.
         if not hit_findings:
             continue
         if len(hit_findings) == 1:
             findings.extend(hit_findings)
         else:
             matched_paths = ", ".join(
-                str(Path(f.path).relative_to(scan_root))
-                if Path(f.path).is_relative_to(scan_root) else f.path
+                str(Path(f.path).relative_to(resolved_root))
                 for f in hit_findings
             )
             findings.append(Finding(
