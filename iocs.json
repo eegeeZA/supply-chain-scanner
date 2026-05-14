@@ -9,26 +9,26 @@
       "summary": "TeamPCP compromised axios@1.14.1 and axios@0.30.4 via a malicious dependency (plain-crypto-js). Deployed credential harvester + cross-platform RAT. Live on npm for ~2-3 hours.",
       "package_manager": "npm",
       "malicious_packages": [
-        { "name": "axios", "version": "1.14.1", "sha1": "2553649f232204966871cea80a5d0d6adc700ca" },
-        { "name": "axios", "version": "0.30.4", "sha1": "d6f3f62fd3b9f5432f5782b62d8cfd5247d5ee71" },
-        { "name": "plain-crypto-js", "version": "4.2.1", "sha1": "07d889e2dadce6f3910dcbc253317d28ca61c766" }
+        { "name": "axios",          "version": "1.14.1", "sha1": "2553649f232204966871cea80a5d0d6adc700ca" },
+        { "name": "axios",          "version": "0.30.4", "sha1": "d6f3f62fd3b9f5432f5782b62d8cfd5247d5ee71" },
+        { "name": "plain-crypto-js","version": "4.2.1",  "sha1": "07d889e2dadce6f3910dcbc253317d28ca61c766" }
       ],
       "injected_dependency": "plain-crypto-js@4.2.1",
       "safe_versions": ["1.14.0", "0.30.3"],
       "network_iocs": [
         { "type": "domain", "value": "sfrclak.com" },
-        { "type": "ip", "value": "142.11.206.73", "port": 8000 },
-        { "type": "url", "value": "packages.npm.org/product0", "platform": "macOS" },
-        { "type": "url", "value": "packages.npm.org/product1", "platform": "Windows" },
-        { "type": "url", "value": "packages.npm.org/product2", "platform": "Linux" }
+        { "type": "ip",     "value": "142.11.206.73", "port": 8000 },
+        { "type": "url",    "value": "packages.npm.org/product0", "platform": "macOS" },
+        { "type": "url",    "value": "packages.npm.org/product1", "platform": "Windows" },
+        { "type": "url",    "value": "packages.npm.org/product2", "platform": "Linux" }
       ],
       "file_iocs": [
-        { "platform": "macOS", "path": "/Library/Caches/com.apple.act.mond" },
-        { "platform": "macOS", "path": "~/Library/Caches/com.apple.act.mond" },
+        { "platform": "macOS",   "path": "/Library/Caches/com.apple.act.mond" },
+        { "platform": "macOS",   "path": "~/Library/Caches/com.apple.act.mond" },
         { "platform": "Windows", "path": "%PROGRAMDATA%/wt.exe" },
         { "platform": "Windows", "path": "%TEMP%/6202033.vbs" },
         { "platform": "Windows", "path": "%TEMP%/6202033.ps1" },
-        { "platform": "Linux", "path": "/tmp/ld.py" }
+        { "platform": "Linux",   "path": "/tmp/ld.py" }
       ],
       "what_to_rotate": [
         "NPM tokens",
@@ -138,6 +138,110 @@
         "GitHub Actions secrets",
         "Browser-stored passwords"
       ]
+    },
+    {
+      "id": "tanstack-2026-05-11",
+      "title": "Mini Shai Hulud Wave 2 — TanStack Router / UiPath / Mistral npm Compromise",
+      "published": "2026-05-11",
+      "severity": "CRITICAL",
+      "source": "https://www.wiz.io/blog/mini-shai-hulud-strikes-again-tanstack-more-npm-packages-compromised",
+      "summary": "TeamPCP poisoned @tanstack/react-router (1.169.5, 1.169.8), 50+ @uipath/* packages, and @mistralai/mistralai (2.2.2–2.2.4) via GitHub Actions cache-poisoning and OIDC token extraction (no stolen npm credentials required). Payload is a self-propagating credential stealer with wiper daemon and IDE persistence via .claude/ and .vscode/ lifecycle file injection.",
+      "package_manager": "npm",
+      "malicious_packages": [
+        { "name": "@tanstack/react-router", "version": "1.169.5", "sha1": "" },
+        { "name": "@tanstack/react-router", "version": "1.169.8", "sha1": "" },
+        { "name": "@tanstack/solid-router",  "version": "1.169.5", "sha1": "" },
+        { "name": "@tanstack/solid-router",  "version": "1.169.8", "sha1": "" },
+        { "name": "@tanstack/vue-router",    "version": "1.169.5", "sha1": "" },
+        { "name": "@tanstack/vue-router",    "version": "1.169.8", "sha1": "" },
+        { "name": "@mistralai/mistralai",    "version": "2.2.2",   "sha1": "", "safe_version": "see advisory" },
+        { "name": "@mistralai/mistralai",    "version": "2.2.3",   "sha1": "", "safe_version": "see advisory" },
+        { "name": "@mistralai/mistralai",    "version": "2.2.4",   "sha1": "", "safe_version": "see advisory" }
+      ],
+      "safe_versions": ["1.169.4", "1.169.9"],
+      "network_iocs": [
+        { "type": "domain", "value": "git-tanstack.com" },
+        { "type": "ip",     "value": "83.142.209.194" },
+        { "type": "url",    "value": "git-tanstack.com/tmp/transformers.pyz" },
+        { "type": "domain", "value": "zero.masscan.cloud" },
+        { "type": "ip",     "value": "94.154.172.43" },
+        { "type": "domain", "value": "getsession.org" }
+      ],
+      "file_iocs": [
+        { "platform": "macOS",  "path": "~/Library/LaunchAgents/com.user.gh-token-monitor.plist" },
+        { "platform": "Linux",  "path": "~/.config/systemd/user/gh-token-monitor.service" },
+        { "platform": "macOS",  "path": "~/setup.mjs" },
+        { "platform": "Linux",  "path": "~/setup.mjs" },
+        { "platform": "macOS",  "path": "~/execution.js" },
+        { "platform": "Linux",  "path": "~/execution.js" }
+      ],
+      "string_iocs": [
+        "gh-token-monitor",
+        "IfYouRevokeThisTokenItWillWipeTheComputerOfTheOwner",
+        "Shai-Hulud: Here We Go Again",
+        "beautifulcastle",
+        "05f9e609d79eed391015e11380dee4b5c9ead0b6e2e7f0134e6e51767a87323026"
+      ],
+      "ide_injection_iocs": [
+        { "rel_path": ".claude/settings.json", "sha256": "14eb4ce01dd4307759887ff819359b70d7d9ff709ecde039a5abc1aac325b128" },
+        { "rel_path": ".claude/execution.js",  "sha256": "" },
+        { "rel_path": ".claude/setup.mjs",     "sha256": "2258284d65f63829bd67eaba01ef6f1ada2f593f9bbe41678b2df360bd90d3df" },
+        { "rel_path": ".vscode/tasks.json",    "sha256": "927387d0cfac1118df4b383decc2ea6ba49c9d2f98b47098bcbcba1efc026e1f" },
+        { "rel_path": ".vscode/setup.mjs",     "sha256": "2258284d65f63829bd67eaba01ef6f1ada2f593f9bbe41678b2df360bd90d3df" }
+      ],
+      "what_to_rotate": [
+        "GitHub tokens (PAT, OAuth, Actions secrets — KILL gh-token-monitor daemon FIRST)",
+        "npm publish tokens",
+        "AWS/GCP/Azure credentials (IMDSv2 was queried)",
+        "HashiCorp Vault tokens",
+        "Kubernetes service account tokens",
+        "Browser-stored credentials (Chrome, Safari, Edge, Brave)",
+        "Stripe, Slack, Twilio API keys",
+        "1Password vault master password",
+        "Bitwarden vault master password"
+      ],
+      "also_compromised": [],
+      "attack_window_start_utc": "2026-05-07T00:00:00",
+      "attack_window_end_utc": "2026-05-12T23:59:59",
+      "wiper_warning": "CRITICAL: before revoking any GitHub token, check for and remove the gh-token-monitor persistence daemon (macOS: ~/Library/LaunchAgents/com.user.gh-token-monitor.plist; Linux: ~/.config/systemd/user/gh-token-monitor.service). Token revocation while the daemon is running triggers 'rm -rf ~/' on the victim machine."
+    },
+    {
+      "id": "mini-shai-hulud-pypi-2026-05-11",
+      "title": "Mini Shai Hulud Wave 2 — Python (guardrails-ai / mistralai PyPI)",
+      "published": "2026-05-11",
+      "severity": "CRITICAL",
+      "source": "https://www.wiz.io/blog/mini-shai-hulud-strikes-again-tanstack-more-npm-packages-compromised",
+      "summary": "guardrails-ai@0.10.1 and mistralai@2.4.6 (PyPI) infected with 13-line dropper fetching git-tanstack[.]com/tmp/transformers.pyz. Linux-only execution; credential stealer targets 1Password and Bitwarden vaults in addition to cloud/git credentials. Geographic kill switch with destructive trigger on Israeli/Iranian systems.",
+      "package_manager": "pip",
+      "malicious_packages": [
+        { "name": "guardrails-ai", "version": "0.10.1", "sha256": "" },
+        { "name": "mistralai",     "version": "2.4.6",  "sha256": "" }
+      ],
+      "safe_versions": ["0.10.0", "2.4.5"],
+      "network_iocs": [
+        { "type": "domain", "value": "git-tanstack.com" },
+        { "type": "url",    "value": "git-tanstack.com/tmp/transformers.pyz" },
+        { "type": "ip",     "value": "83.142.209.194" }
+      ],
+      "file_iocs": [
+        { "platform": "Linux", "path": "/tmp/transformers.pyz" }
+      ],
+      "string_iocs": [
+        "gh-token-monitor",
+        "transformers.pyz",
+        "git-tanstack.com"
+      ],
+      "what_to_rotate": [
+        "GitHub tokens (KILL gh-token-monitor daemon FIRST)",
+        "1Password vault master password",
+        "Bitwarden vault master password",
+        "AWS/GCP/Azure credentials",
+        "SSH keys",
+        "API tokens"
+      ],
+      "attack_window_start_utc": "2026-05-07T00:00:00",
+      "attack_window_end_utc": "2026-05-12T23:59:59",
+      "wiper_warning": "CRITICAL: before revoking any GitHub token, check for and remove the gh-token-monitor persistence daemon (Linux: ~/.config/systemd/user/gh-token-monitor.service). Token revocation triggers 'rm -rf ~/'."
     }
   ]
 }

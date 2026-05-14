@@ -75,7 +75,7 @@ def styled(text: str, code: str) -> str:
 # Update URL and SHA256 here when a new iocs.json release is published.
 
 _IOCS_UPDATE_URL = "https://raw.githubusercontent.com/eegeeZA/supply-chain-scanner/main/iocs.json"
-_IOCS_UPDATE_SHA256 = "84906c0e7bdc78f61c992390b4d9baad1af1cef760ccd31c23ab59dc0a675fe0"
+_IOCS_UPDATE_SHA256 = "a80d94228d18f2f186601a038eae3344188aa30e6ea611c99aedb7aa7a8ab6fc"
 
 _EMBEDDED_IOCS: dict = {
     "incidents": [
@@ -232,6 +232,138 @@ _EMBEDDED_IOCS: dict = {
                 "Browser-stored passwords",
             ],
         },
+        {
+            "id": "tanstack-2026-05-11",
+            "title": "Mini Shai Hulud Wave 2 — TanStack Router / UiPath / Mistral npm Compromise",
+            "published": "2026-05-11",
+            "severity": "CRITICAL",
+            "source": "https://www.wiz.io/blog/mini-shai-hulud-strikes-again-tanstack-more-npm-packages-compromised",
+            "summary": (
+                "TeamPCP poisoned @tanstack/react-router (1.169.5, 1.169.8), 50+ @uipath/* "
+                "packages, and @mistralai/mistralai (2.2.2–2.2.4) via GitHub Actions cache-"
+                "poisoning and OIDC token extraction (no stolen npm credentials required). "
+                "Payload is a self-propagating credential stealer with wiper daemon and IDE "
+                "persistence via .claude/ and .vscode/ lifecycle file injection."
+            ),
+            "package_manager": "npm",
+            "malicious_packages": [
+                # @uipath/* namespace: ~50 packages affected; individual package names/versions
+                # not yet fully enumerated. Covered heuristically via _SUSPICIOUS_SCRIPT
+                # (preinstall → node setup.mjs pattern) until the full list is disclosed.
+                {"name": "@tanstack/react-router", "version": "1.169.5", "sha1": ""},
+                {"name": "@tanstack/react-router", "version": "1.169.8", "sha1": ""},
+                {"name": "@tanstack/solid-router",  "version": "1.169.5", "sha1": ""},
+                {"name": "@tanstack/solid-router",  "version": "1.169.8", "sha1": ""},
+                {"name": "@tanstack/vue-router",    "version": "1.169.5", "sha1": ""},
+                {"name": "@tanstack/vue-router",    "version": "1.169.8", "sha1": ""},
+                {"name": "@mistralai/mistralai",    "version": "2.2.2",   "sha1": "", "safe_version": "see advisory"},
+                {"name": "@mistralai/mistralai",    "version": "2.2.3",   "sha1": "", "safe_version": "see advisory"},
+                {"name": "@mistralai/mistralai",    "version": "2.2.4",   "sha1": "", "safe_version": "see advisory"},
+            ],
+            "safe_versions": ["1.169.4", "1.169.9"],
+            "network_iocs": [
+                {"type": "domain", "value": "git-tanstack.com"},
+                {"type": "ip",     "value": "83.142.209.194"},
+                {"type": "url",    "value": "git-tanstack.com/tmp/transformers.pyz"},
+                {"type": "domain", "value": "zero.masscan.cloud"},
+                {"type": "ip",     "value": "94.154.172.43"},
+                {"type": "domain", "value": "getsession.org"},
+            ],
+            "file_iocs": [
+                # Wiper daemon — MUST be removed BEFORE revoking GitHub tokens
+                {"platform": "macOS",  "path": "~/Library/LaunchAgents/com.user.gh-token-monitor.plist"},
+                {"platform": "Linux",  "path": "~/.config/systemd/user/gh-token-monitor.service"},
+                # setup.mjs dropper dropped to home dir
+                {"platform": "macOS",  "path": "~/setup.mjs"},
+                {"platform": "Linux",  "path": "~/setup.mjs"},
+                # execution.js second-stage credential harvester
+                {"platform": "macOS",  "path": "~/execution.js"},
+                {"platform": "Linux",  "path": "~/execution.js"},
+            ],
+            "string_iocs": [
+                "gh-token-monitor",
+                "IfYouRevokeThisTokenItWillWipeTheComputerOfTheOwner",
+                "Shai-Hulud: Here We Go Again",
+                "beautifulcastle",
+                "05f9e609d79eed391015e11380dee4b5c9ead0b6e2e7f0134e6e51767a87323026",
+            ],
+            "ide_injection_iocs": [
+                # Files injected into victim repos; sha256 empty = path presence alone suspicious
+                {"rel_path": ".claude/settings.json", "sha256": "14eb4ce01dd4307759887ff819359b70d7d9ff709ecde039a5abc1aac325b128"},
+                {"rel_path": ".claude/execution.js",  "sha256": ""},
+                {"rel_path": ".claude/setup.mjs",     "sha256": "2258284d65f63829bd67eaba01ef6f1ada2f593f9bbe41678b2df360bd90d3df"},
+                {"rel_path": ".vscode/tasks.json",    "sha256": "927387d0cfac1118df4b383decc2ea6ba49c9d2f98b47098bcbcba1efc026e1f"},
+                {"rel_path": ".vscode/setup.mjs",     "sha256": "2258284d65f63829bd67eaba01ef6f1ada2f593f9bbe41678b2df360bd90d3df"},
+            ],
+            "what_to_rotate": [
+                "GitHub tokens (PAT, OAuth, Actions secrets — KILL gh-token-monitor daemon FIRST)",
+                "npm publish tokens",
+                "AWS/GCP/Azure credentials (IMDSv2 was queried)",
+                "HashiCorp Vault tokens",
+                "Kubernetes service account tokens",
+                "Browser-stored credentials (Chrome, Safari, Edge, Brave)",
+                "Stripe, Slack, Twilio API keys",
+                "1Password vault master password",
+                "Bitwarden vault master password",
+            ],
+            "also_compromised": [],
+            "attack_window_start_utc": "2026-05-07T00:00:00",
+            "attack_window_end_utc":   "2026-05-12T23:59:59",
+            "wiper_warning": (
+                "CRITICAL: before revoking any GitHub token, check for and remove the "
+                "gh-token-monitor persistence daemon (macOS: ~/Library/LaunchAgents/"
+                "com.user.gh-token-monitor.plist; Linux: ~/.config/systemd/user/"
+                "gh-token-monitor.service). Token revocation while the daemon is running "
+                "triggers 'rm -rf ~/' on the victim machine."
+            ),
+        },
+        {
+            "id": "mini-shai-hulud-pypi-2026-05-11",
+            "title": "Mini Shai Hulud Wave 2 — Python (guardrails-ai / mistralai PyPI)",
+            "published": "2026-05-11",
+            "severity": "CRITICAL",
+            "source": "https://www.wiz.io/blog/mini-shai-hulud-strikes-again-tanstack-more-npm-packages-compromised",
+            "summary": (
+                "guardrails-ai@0.10.1 and mistralai@2.4.6 (PyPI) infected with 13-line dropper "
+                "fetching git-tanstack[.]com/tmp/transformers.pyz. Linux-only execution; credential "
+                "stealer targets 1Password and Bitwarden vaults in addition to cloud/git credentials. "
+                "Geographic kill switch with destructive trigger on Israeli/Iranian systems."
+            ),
+            "package_manager": "pip",
+            "malicious_packages": [
+                {"name": "guardrails-ai", "version": "0.10.1", "sha256": ""},
+                {"name": "mistralai",     "version": "2.4.6",  "sha256": ""},
+            ],
+            "safe_versions": ["0.10.0", "2.4.5"],
+            "network_iocs": [
+                {"type": "domain", "value": "git-tanstack.com"},
+                {"type": "url",    "value": "git-tanstack.com/tmp/transformers.pyz"},
+                {"type": "ip",     "value": "83.142.209.194"},
+            ],
+            "file_iocs": [
+                {"platform": "Linux", "path": "/tmp/transformers.pyz"},
+            ],
+            "string_iocs": [
+                "gh-token-monitor",
+                "transformers.pyz",
+                "git-tanstack.com",
+            ],
+            "what_to_rotate": [
+                "GitHub tokens (KILL gh-token-monitor daemon FIRST)",
+                "1Password vault master password",
+                "Bitwarden vault master password",
+                "AWS/GCP/Azure credentials",
+                "SSH keys",
+                "API tokens",
+            ],
+            "attack_window_start_utc": "2026-05-07T00:00:00",
+            "attack_window_end_utc":   "2026-05-12T23:59:59",
+            "wiper_warning": (
+                "CRITICAL: before revoking any GitHub token, check for and remove the "
+                "gh-token-monitor persistence daemon (Linux: ~/.config/systemd/user/"
+                "gh-token-monitor.service). Token revocation triggers 'rm -rf ~/'."
+            ),
+        },
     ]
 }
 
@@ -323,7 +455,7 @@ _SUSPICIOUS_SCRIPT = re.compile(
 Category = Literal[
     "package", "lockfile", "node_modules", "installed_package",
     "file_artifact", "network", "shell_profile", "launch_agent", "config", "docker",
-    "repo_poisoning",
+    "repo_poisoning", "ide_injection",
 ]
 Severity = Literal["CRITICAL", "HIGH", "WARNING"]
 
@@ -434,7 +566,7 @@ def check_package_json(path: str, incidents: list[dict]) -> list[Finding]:
             name, bad_ver = pkg["name"], pkg["version"]
             if name not in all_dep_versions:
                 continue
-            safe = ", ".join(incident.get("safe_versions", ["see advisory"]))
+            safe = pkg.get("safe_version") or ", ".join(incident.get("safe_versions", ["see advisory"]))
             for declared in all_dep_versions[name]:
                 if _version_matches(declared, bad_ver):
                     findings.append(Finding(
@@ -1561,6 +1693,7 @@ def _ioc_search_terms(incident: dict) -> list[str]:
     if incident_id not in _ioc_terms_cache:
         terms = [ioc["value"] for ioc in incident.get("network_iocs", [])]
         terms += [str(_expand(ioc["path"])) for ioc in incident.get("file_iocs", [])]
+        terms += incident.get("string_iocs", [])
         _ioc_terms_cache[incident_id] = terms
     return _ioc_terms_cache[incident_id]
 
@@ -1606,9 +1739,10 @@ def host_file_artifacts(incidents: list[dict]) -> list[Finding]:
                     severity="CRITICAL",
                     path=str(path),
                     detail=f'RAT artifact found: {ioc["path"]}',
-                    remediation=(
+                    remediation=_persistence_remediation(
+                        incident,
                         'System likely compromised. Isolate machine, rotate ALL credentials, '
-                        'engage incident response. Remove file and check for persistence.'
+                        'engage incident response. Remove file and check for persistence.',
                     ),
                 ))
     return findings
@@ -1650,6 +1784,132 @@ def host_shell_profiles(incidents: list[dict]) -> list[Finding]:
     return findings
 
 
+_PRUNE_DIRS = frozenset({
+    "node_modules", ".git", "Library", "Applications", "System",
+    "proc", "sys", "dev", "run", "boot", "snap", "__pycache__",
+})
+
+
+def _discover_repo_roots(root: Path, max_depth: int = 3) -> list[Path]:
+    """Return all git repo roots reachable from root up to max_depth levels deep.
+
+    When root is the filesystem root (/), scans from the user's home directory
+    to avoid traversing system directories. Prunes well-known high-noise paths.
+    Deduplicates results while preserving discovery order.
+    """
+    roots: list[Path] = []
+    if (root / ".git").exists():
+        roots.append(root)
+
+    def _walk(path: Path, depth: int) -> None:
+        if depth > max_depth:
+            return
+        try:
+            for entry in os.scandir(path):
+                if not entry.is_dir(follow_symlinks=False) or entry.name in _PRUNE_DIRS:
+                    continue
+                ep = Path(entry.path)
+                if (ep / ".git").exists():
+                    roots.append(ep)
+                else:
+                    _walk(ep, depth + 1)
+        except OSError:
+            pass
+
+    scan_root = Path.home() if root == Path("/") else root
+    _walk(scan_root, 1)
+    return list(dict.fromkeys(roots))
+
+
+def host_ide_injection(incidents: list[dict], root: Path) -> list[Finding]:
+    """Scan git repos under root for IDE lifecycle files injected by supply-chain malware.
+
+    Checks .claude/ and .vscode/ paths planted by supply-chain campaigns to
+    re-execute a credential stealer every time a developer opens the repo.
+    Matching is SHA256-based where a known hash exists; path-presence alone
+    raises HIGH when the hash field is empty (unknown variant). Hash mismatch
+    against a known-IOC path raises LOW (file exists at the path but is likely
+    a legitimate user file — confirm manually).
+
+    Only directories that are git repo roots (contain a .git entry) are checked
+    to avoid false-positives in nested node_modules or system directories.
+    Repos are discovered up to 3 directory levels deep via _discover_repo_roots.
+    """
+    findings = []
+    inject_incidents = [i for i in incidents if i.get("ide_injection_iocs")]
+    if not inject_incidents:
+        return findings
+
+    repo_roots = _discover_repo_roots(root)
+    if not repo_roots:
+        return findings
+
+    for incident in inject_incidents:
+        base_rem = (
+            "Delete the file, audit git log for the intimidation commit message, "
+            "then follow wiper-safe token revocation order (kill gh-token-monitor daemon BEFORE revoking tokens)."
+        )
+        remediation = _persistence_remediation(incident, base_rem)
+
+        for ioc in incident["ide_injection_iocs"]:
+            rel = ioc["rel_path"]
+            known_sha256 = ioc.get("sha256", "")
+            for repo_root in repo_roots:
+                try:
+                    target = (repo_root / rel).resolve()
+                except OSError:
+                    continue
+                if not target.is_relative_to(repo_root.resolve()):
+                    continue
+                if not target.exists():
+                    continue
+                if known_sha256:
+                    try:
+                        actual = hashlib.sha256(target.read_bytes()).hexdigest()
+                    except OSError:
+                        continue
+                    if actual == known_sha256:
+                        findings.append(Finding(
+                            incident_id=incident["id"],
+                            category="ide_injection",
+                            severity="CRITICAL",
+                            path=str(target),
+                            detail=(
+                                f'Known-malicious IDE injection file confirmed by SHA256: {rel} '
+                                f'(sha256={actual[:16]}…)'
+                            ),
+                            remediation=remediation,
+                        ))
+                    else:
+                        findings.append(Finding(
+                            incident_id=incident["id"],
+                            category="ide_injection",
+                            severity="LOW",
+                            path=str(target),
+                            detail=(
+                                f'File exists at known-IOC path: {rel} '
+                                f'(hash differs from known-malicious version — likely legitimate; confirm manually)'
+                            ),
+                            remediation=remediation,
+                        ))
+                else:
+                    findings.append(Finding(
+                        incident_id=incident["id"],
+                        category="ide_injection",
+                        severity="HIGH",
+                        path=str(target),
+                        detail=f'Suspicious IDE injection path found: {rel} (no known hash — confirm manually)',
+                        remediation=remediation,
+                    ))
+    return findings
+
+
+def _persistence_remediation(incident: dict, base: str) -> str:
+    """Prepend wiper_warning to persistence remediation text when the incident has one."""
+    warn = incident.get("wiper_warning", "")
+    return f"{warn}\n{base}" if warn else base
+
+
 # ── Platform-specific persistence checks ─────────────────────────────────────
 
 def _persistence_macos(incidents: list[dict]) -> list[Finding]:
@@ -1685,7 +1945,10 @@ def _persistence_macos(incidents: list[dict]) -> list[Finding]:
                             severity="CRITICAL",
                             path=str(plist),
                             detail=f'LaunchAgent references C2 IOC "{term}" — persistent RAT likely installed',
-                            remediation='launchctl unload + delete plist + reboot. Rotate all credentials.',
+                            remediation=_persistence_remediation(
+                                incident,
+                                'launchctl unload + delete plist + reboot. Rotate all credentials.',
+                            ),
                         ))
                         break
     return findings
@@ -1721,7 +1984,10 @@ def _persistence_linux(incidents: list[dict]) -> list[Finding]:
                         severity="CRITICAL",
                         path="crontab",
                         detail=f'Crontab contains IOC "{term}" — scheduled persistence',
-                        remediation='Run crontab -e and remove the malicious entry. Rotate credentials.',
+                        remediation=_persistence_remediation(
+                            incident,
+                            'Run crontab -e and remove the malicious entry. Rotate credentials.',
+                        ),
                     ))
 
         # systemd user services
@@ -1740,7 +2006,10 @@ def _persistence_linux(incidents: list[dict]) -> list[Finding]:
                             severity="CRITICAL",
                             path=str(unit),
                             detail=f'systemd user service references IOC "{term}"',
-                            remediation='systemctl --user disable <unit>, delete file, rotate credentials.',
+                            remediation=_persistence_remediation(
+                                incident,
+                                'systemctl --user disable <unit>, delete file, rotate credentials.',
+                            ),
                         ))
                         break
 
@@ -1760,7 +2029,10 @@ def _persistence_linux(incidents: list[dict]) -> list[Finding]:
                             severity="CRITICAL",
                             path=str(desktop_file),
                             detail=f'XDG autostart entry references IOC "{term}"',
-                            remediation='Delete the .desktop file. Rotate credentials.',
+                            remediation=_persistence_remediation(
+                                incident,
+                                'Delete the .desktop file. Rotate credentials.',
+                            ),
                         ))
                         break
 
@@ -2611,6 +2883,9 @@ class Scanner:
             # Cross-ecosystem checks (pip, conda, gem, cargo, go, homebrew, chocolatey)
             result.findings.extend(host_pip_packages(incidents))
             result.findings.extend(host_other_ecosystems(incidents))
+
+        # IDE persistence injection — always runs; artefacts live inside the scanned repo tree
+        result.findings.extend(host_ide_injection(incidents, self.root))
 
         # Susceptibility / configuration hygiene checks
         result.findings.extend(host_npmrc_hygiene())
